@@ -1,0 +1,18 @@
+- hosts: all
+  become: yes
+  gather_fatcs: no
+
+  tasks:
+    - name: stopping the running containers. If a container with name already exists.
+      command: docker stop simple-devops-container
+      ignore_error: yes
+    - name: removing stopped container. If a container with name already exists.
+      command: docker rm simple-devops-container
+      ignore_error: yes
+    - name: removing images. If image with name already exists
+      command: docker rmi namma14/simple-devops-image:latest
+      ignore_error: yes
+    - name: pulling image from dockerhub
+      command: docker pull namma14/simple-devops-image:latest
+    - name: running a container
+      command: docker run -d --name simple-devops-container -p 8080:8080 namma14/simple-devops-image:latest
