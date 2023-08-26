@@ -1,0 +1,128 @@
+Create 3 t2micro EC2 insatnces (jenkins,ansible,docker)
+sudo su - on all 3 instances
+change the hostname of all 3 instance hostname <name> (jenkins_server,ansible_server,docker_server)
+update the hostname in /etc/hostname file as per the new hostnames for each instance
+run sudo su - for changes to take effect on all 3
+install java on all 3 server 
+  sudo apt install default-jre and sudo apt install default-jdk
+  apt update
+create password less authentication goto vi /etc/ssh/sshd_config for all 3 server
+  change PasswordAuthentication permission to YES for all 3
+  service sshd reolad to make changes effective
+Install Maven on Jenkins Server
+  cd /opt
+  wget https://mirrors.estointernet.in/apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
+  tar -xvf apache-maven-3.6.3-bin.tar.gz
+  move the unzipped file to maven folder - mv apache-maven-3.6.3 maven
+  goto root directory cd ~
+  change the profile path vi .bash_profile
+    M2_HOME=/opt/maven
+    M2=$M2_HOME/bin
+    PATH=$PATH:$JAVA_HOME:$M2_HOME:$M2:$HOME/bin
+    export PATH
+    sudo su -
+    echo $PATH
+    echo $M2
+Install Jenkins on Jenkins server Follow: https://www.digitalocean.com/community/tutorials/how-to-install-jenkins-on-ubuntu-22-04
+  Providing sudo permissions to jenkins user
+  vi /etc/sudoers
+  jenkins ALL = (ALL) NOPASSWD:ALL
+  systemctl restart jenkins
+login Jenkins server and install plugins
+  git
+  maven
+  publish overssh
+goto Global Tool Configuration
+  set config for Maven server
+  Name = maven
+  path = /opt/maven
+**************************************************
+Ansible Server:
+Install python and python pipon ansible server follow:https://phoenixnap.com/kb/how-to-install-python-3-ubuntu
+Install Ansible  pip install ansible
+create anisble config file - mkdir /etc/ansible
+create hosts file in /etc/ansible - vi hosts
+    enter "localhost" and save the file
+Install Docker - apt install docker.io
+create user on ansible server
+  useradd ansadmin
+  passwd ansadmin
+login as ansadmin
+create docker folder mkdir docker inside /opt folder
+to change access rights of docker folder 
+  chown -R ansadmin:ansadmin /opt/docker
+add ansadmin to docker group to manage docker
+  chmod -aG docker ansadmin 
+Grant sudo access to user ansadmin
+  visudo
+  ansadmin ALL=(ALL) NOPASSWD:ALL
+login as ansadmin : sudo su - ansadmin
+generate public and private ssh key
+ssh-keygen
+copy the public key to docker server
+  ssh-copy-id ansadmin@private_ip_of_dockerserver
+check if the key has been copied successfully 
+  ssh ansadmin@private_ip_of_dockerserver
+copy ssh keys to local host as well
+  ssh-copy-id localhost
+check if the key has been copied successfully to local host
+  ssh localhost
+validation test : to check if ansible sever is able to communicate with local host.
+  ansible all -m ping
+***************************************************
+Configure publish over ssh in jenkins
+go to configuration
+move to publish over ssh
+add ssh server
+name = ansible-server
+hostname = private ip of ansible server
+username = ansadmin
+click advance button: use password authentication
+enter password for user ansadmin
+test connection
+apply and save
+****************************************************
+Git on Jenkins
+Install github on jenkins server: apt install git -y
+Update the hosts file available in github repo , add private ip of docker server. hosts file would have localhost aswell.
+***************************************************
+ansible server
+login as root user
+login into dockerhub: docker login
+enter username and password.
+***************************************************
+Create a maven project in jenkins
+goto source code managment
+select Git
+  enter git repo url
+  enter branch name
+Build Section
+  clean install package
+POst Build Action:
+  select "send build artifcats over ssh"
+    ssh-server
+      name= ansible-server
+      source files: enter file names created in repo: Dockerfile, hosts, create-simple-devops-project.yml,create-simple-devops-image.yml
+      remote directory: //opt//docker - path for docker folder wehere we want to copy the files
+
+add another ssh server
+  name: ansible-server
+  sourcefile: webapp/targert/*.war
+  remove prefix: webapp/target
+  remote directory: //opt//docker - this is the folder where we would want to place the war file
+  exec command: to run the ansible playbook for creating images, pushing images to dockerhub and creating containers.
+    command:ansible-playbook -i /opt/docker/hosts /opt/docker/create-simple-devops-image.yml --limit localhost; this command will create docker images in ansible server and push them to dockerhub
+    command ansible-playbook -i /opt/docker/hosts /opt/docker/create-simple-devops-project.yml --limit <dockerserver private ip>; this would pull the the image from dockerhub and create a container.
+run the 
+        
+***************************************************
+Docker Server:
+Install Docker : apt install docker.io
+create user on docker server
+  useradd ansadmin
+  passwd ansadmin
+add ansadmin to docker group to manage docker
+  chmod -aG docker ansadmin 
+Grant sudo access to user ansadmin
+  visudo
+  ansadmin ALL=(ALL) NOPASSWD:ALL
