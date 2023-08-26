@@ -1,0 +1,16 @@
+- hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:  
+    - name: create docker image using war file.
+      command: docker build -t simple-devopsimage:latest .
+      args:
+        chdir: /opt/docker
+    - name: create a tag to image
+      command: docker tag simple-devopsimage:latest namma14/simple-devopsimage:latest
+    - name: push the image to dockerhub
+      command: docker push namma14/simple-devopsimage:latest
+
+      - name: remove docker images.
+        command: docker rmi simple-devopsimage:latest namma14/simple-devopsimage:latest tomcat
